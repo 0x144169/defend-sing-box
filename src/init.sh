@@ -117,8 +117,8 @@ else
 fi
 if [[ -f $is_caddy_bin && -d $is_caddy_dir && $is_caddy_service ]]; then
     is_caddy=1
-    # fix caddy run; ver >= 2.8.2
-    [[ ! $(grep '\-\-adapter caddyfile' /lib/systemd/system/caddy.service) ]] && {
+    # fix caddy run; ver >= 2.8.2（仅当脚本安装的 unit 存在时才检查）
+    [[ -f /lib/systemd/system/caddy.service && ! $(grep '\-\-adapter caddyfile' /lib/systemd/system/caddy.service 2>/dev/null) ]] && {
         load systemd.sh
         install_service caddy
         systemctl restart caddy &

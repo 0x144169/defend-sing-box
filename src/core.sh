@@ -409,7 +409,7 @@ BLOCK_HEAD
                 is_warn_page_port=2080
                 if [[ -f $is_core_dir/block_use_warn_page ]] && [[ $is_caddy ]]; then
                     ensure_block_warn_caddy
-                    is_rules_json=$(echo "$is_domains" | jq -R -s --arg addr "$is_warn_page_addr" --argjson port $is_warn_page_port '[split("\n")|map(select(length>0))|map(if startswith(".") then . else "."+. end)|map({"domain_suffix":[.],"action":"route","outbound":"direct","override_address":$addr,"override_port":port})]|add|.+[{"action":"route","outbound":"direct"}]' -c)
+                    is_rules_json=$(echo "$is_domains" | jq -R -s --arg addr "$is_warn_page_addr" --argjson port $is_warn_page_port '[split("\n")|map(select(length>0))|map(if startswith(".") then . else "."+. end)|map({"domain_suffix":[.],"action":"route","outbound":"direct","override_address":$addr,"override_port":$port})]|add|.+[{"action":"route","outbound":"direct"}]' -c)
                 else
                     is_rules_json=$(echo "$is_domains" | jq -R -s '[split("\n")|map(select(length>0))|map(if startswith(".") then . else "."+. end)|map({"domain_suffix":[.],"action":"reject"})]|add|.+[{"action":"route","outbound":"direct"}]' -c)
                 fi
