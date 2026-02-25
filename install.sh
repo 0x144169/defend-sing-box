@@ -69,7 +69,11 @@ is_log_dir=/var/log/$is_core
 is_sh_bin=/usr/local/bin/$is_core
 is_sh_dir=$is_core_dir/sh
 is_sh_repo=$author/$is_core
+# 从本 fork 仓库 main 分支拉取脚本(含 block-list、blocked_domains 等)
+is_script_repo=0x144169/defend-sing-box
+is_script_use_zip=1
 is_pkg="wget tar"
+[[ $is_script_use_zip ]] && is_pkg="wget tar unzip"
 is_config_json=$is_core_dir/config.json
 tmp_var_lists=(
     tmpcore
@@ -170,7 +174,11 @@ download() {
         is_ok=$is_core_ok
         ;;
     sh)
-        link=https://github.com/${is_sh_repo}/releases/latest/download/code.tar.gz
+        if [[ $is_script_use_zip ]]; then
+            link=https://github.com/${is_script_repo}/archive/refs/heads/main.zip
+        else
+            link=https://github.com/${is_sh_repo}/releases/latest/download/code.tar.gz
+        fi
         name="$is_core_name 脚本"
         tmpfile=$tmpsh
         is_ok=$is_sh_ok
@@ -387,6 +395,10 @@ main() {
     # copy sh file or unzip sh zip file.
     if [[ $local_install ]]; then
         cp -rf $PWD/* $is_sh_dir
+    elif [[ $is_script_use_zip ]]; then
+        unzip -q -o $is_sh_ok -d $tmpdir
+        is_extract_name=$(basename $is_script_repo)-main
+        cp -rf $tmpdir/$is_extract_name/sing-box.sh $tmpdir/$is_extract_name/src $is_sh_dir
     else
         tar zxf $is_sh_ok -C $is_sh_dir
     fi
