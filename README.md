@@ -24,7 +24,19 @@
 - 一键启用 BBR
 - 一键更改伪装网站
 - 一键更改 (端口/UUID/密码/域名/路径/加密方式/SNI/等...)
+- **可配置网站屏蔽**：通过域名列表限制访问指定网站（如未成年人保护场景）
 - 还有更多...
+
+# 屏蔽指定网站（限制访问）
+
+本脚本支持通过**域名列表**屏蔽指定网站，适用于需要限制访问敏感内容的场景（如未成年人保护）。
+
+- **配置文件**：`/etc/sing-box/blocked_domains.txt`（首次生成 config 或执行 fix-config.json 时自动创建）
+- **格式**：每行一个域名，支持以 `#` 开头的注释行。填写 `example.com` 会屏蔽该域名及其所有子域名。
+- **生效**：编辑保存后执行 `sing-box fix-config.json`，然后服务会自动重启使配置生效。
+- **查看配置**：执行 `sing-box block-list` 可查看配置文件路径与当前内容。
+
+本功能为**可选扩展**，不修改一键安装流程；未配置或列表为空时行为与原有脚本完全一致。
 
 # 设计理念
 
@@ -87,6 +99,7 @@ Usage: sing-box [options]... [args]...
    fix-all                                         修复全部配置
    fix-caddyfile                                   修复 Caddyfile
    fix-config.json                                 修复 config.json
+   block-list                                      查看/说明屏蔽域名列表配置
    import                                          导入 sing-box/v2ray 脚本配置
 
 管理:

@@ -46,6 +46,7 @@ show_help() {
             "   fix-all                                         修复全部配置"
             "   fix-caddyfile                                   修复 Caddyfile"
             "   fix-config.json                                 修复 config.json"
+            "   block-list                                      查看/说明屏蔽域名列表配置"
             "   import                                          导入 xray/v2ray 脚本配置\n"
             "管理:"
             "   un, uninstall                                   卸载"

@@ -370,7 +370,23 @@ create() {
             [[ ! $is_ntp_on ]] && is_ntp=
         fi
         is_outbounds='outbounds:[{tag:"direct",type:"direct"}]'
-        is_server_config_json=$(jq "{$is_log,$is_dns,$is_ntp$is_outbounds}" <<<{})
+        is_route=
+        is_block_list=$is_core_dir/blocked_domains.txt
+        if [[ ! -f $is_block_list ]]; then
+            cat >"$is_block_list" <<'BLOCK_HEAD'
+# 屏蔽域名列表 (每行一个域名，以 # 开头为注释)
+# 编辑此文件后执行: sing-box fix-config.json 使配置生效
+# 示例: example.com 会屏蔽 example.com 及其子域名
+BLOCK_HEAD
+        fi
+        if [[ -f $is_block_list ]]; then
+            is_domains=$(grep -v '^[[:space:]]*#' "$is_block_list" 2>/dev/null | grep -v '^[[:space:]]*$' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed 's/^\.*/./' )
+            if [[ -n "$is_domains" ]]; then
+                is_rules_json=$(echo "$is_domains" | jq -R -s '[split("\n")|map(select(length>0))|map(if startswith(".") then . else "."+. end)|map({"domain_suffix":[.],"action":"reject"})]|add|.+[{"action":"route","outbound":"direct"}]' -c)
+                is_route=",route:{rules:$is_rules_json}"
+            fi
+        fi
+        is_server_config_json=$(jq "{$is_log,$is_dns,$is_ntp$is_outbounds$is_route}" <<<{})
         cat <<<$is_server_config_json >$is_config_json
         manage restart &
         ;;
@@ -1633,6 +1649,19 @@ main() {
         ;;
     fix-config.json)
         create config.json
+        ;;
+    block-list)
+        is_block_list=$is_core_dir/blocked_domains.txt
+        _green "\n屏蔽域名列表配置文件: $is_block_list\n"
+        msg "编辑此文件可添加需要屏蔽的域名 (每行一个)，以 # 开头为注释。"
+        msg "修改后执行: sing-box fix-config.json 使配置生效。\n"
+        if [[ -f $is_block_list ]]; then
+            _cyan "当前内容:"
+            cat "$is_block_list"
+            msg
+        else
+            msg "文件不存在，执行 fix-config.json 或添加配置时会自动创建。"
+        fi
         ;;
     fix-caddyfile)
         if [[ $is_caddy ]]; then
