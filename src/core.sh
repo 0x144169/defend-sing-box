@@ -297,6 +297,29 @@ ask() {
     unset is_opt_msg is_opt_input_msg is_tmp_list is_ask_result is_default_arg is_emtpy_exit
 }
 
+# 告警页：确保 Caddy 与 warn-page 就绪（屏蔽时返回“好好学习…”页面）
+ensure_block_warn_caddy() {
+    mkdir -p $is_core_dir/warn-page
+    if [[ -f $is_sh_dir/warn-page/warn.html ]]; then
+        cp -f $is_sh_dir/warn-page/warn.html $is_core_dir/warn-page/warn.html
+    else
+        [[ ! -f $is_core_dir/warn-page/warn.html ]] && cat >$is_core_dir/warn-page/warn.html <<'WARNHTML'
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>访问受限</title><style>body{font-family:system-ui,sans-serif;max-width:32em;margin:4em auto;padding:0 1em;line-height:1.6;color:#333}h1{font-size:1.25rem;color:#c00}p{margin:1em 0}</style></head><body><h1>访问受限</h1><p>好好学习，不要访问不该访问的网站。</p></body></html>
+WARNHTML
+    fi
+    mkdir -p $is_caddy_conf
+    cat >$is_caddy_conf/block-warn.conf <<BLOCKWARN
+# 屏蔽告警页：仅本机 2080，由 sing-box 将屏蔽流量转向此处
+127.0.0.1:2080 {
+    root * $is_core_dir/warn-page
+    file_server
+    try_files {path} /warn.html
+}
+BLOCKWARN
+    manage restart caddy &
+}
+
 # create file
 create() {
     case $1 in
@@ -382,7 +405,14 @@ BLOCK_HEAD
         if [[ -f $is_block_list ]]; then
             is_domains=$(grep -v '^[[:space:]]*#' "$is_block_list" 2>/dev/null | grep -v '^[[:space:]]*$' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed 's/^\.*/./' )
             if [[ -n "$is_domains" ]]; then
-                is_rules_json=$(echo "$is_domains" | jq -R -s '[split("\n")|map(select(length>0))|map(if startswith(".") then . else "."+. end)|map({"domain_suffix":[.],"action":"reject"})]|add|.+[{"action":"route","outbound":"direct"}]' -c)
+                is_warn_page_addr=127.0.0.1
+                is_warn_page_port=2080
+                if [[ -f $is_core_dir/block_use_warn_page ]] && [[ $is_caddy ]]; then
+                    ensure_block_warn_caddy
+                    is_rules_json=$(echo "$is_domains" | jq -R -s --arg addr "$is_warn_page_addr" --argjson port $is_warn_page_port '[split("\n")|map(select(length>0))|map(if startswith(".") then . else "."+. end)|map({"domain_suffix":[.],"action":"route","outbound":"direct","override_address":$addr,"override_port":port})]|add|.+[{"action":"route","outbound":"direct"}]' -c)
+                else
+                    is_rules_json=$(echo "$is_domains" | jq -R -s '[split("\n")|map(select(length>0))|map(if startswith(".") then . else "."+. end)|map({"domain_suffix":[.],"action":"reject"})]|add|.+[{"action":"route","outbound":"direct"}]' -c)
+                fi
                 is_route=",route:{rules:$is_rules_json}"
             fi
         fi
@@ -1662,6 +1692,34 @@ main() {
         else
             msg "文件不存在，执行 fix-config.json 或添加配置时会自动创建。"
         fi
+        ;;
+    block-warn)
+        case ${2,,} in
+        on)
+            if [[ ! $is_caddy ]]; then
+                warn "未检测到 Caddy。请先添加任意需 TLS 的协议(如 VLESS-WS-TLS)以安装 Caddy，或手动安装 Caddy 后再试。"
+                exit 1
+            fi
+            touch $is_core_dir/block_use_warn_page
+            ensure_block_warn_caddy
+            create config.json
+            _green "\n已开启屏蔽告警页。访问被屏蔽网站时将显示告警页。\n"
+            ;;
+        off)
+            rm -f $is_core_dir/block_use_warn_page $is_caddy_conf/block-warn.conf 2>/dev/null
+            [[ $is_caddy ]] && manage restart caddy &
+            create config.json
+            _green "\n已关闭屏蔽告警页，恢复为直接拒绝连接。\n"
+            ;;
+        *)
+            if [[ -f $is_core_dir/block_use_warn_page ]]; then
+                msg "当前状态: 已开启 (关闭请执行: sing-box block-warn off)"
+            else
+                msg "当前状态: 已关闭 (开启请执行: sing-box block-warn on)"
+            fi
+            msg "告警页文件: $is_core_dir/warn-page/warn.html (可自定义内容)"
+            ;;
+        esac
         ;;
     fix-caddyfile)
         if [[ $is_caddy ]]; then

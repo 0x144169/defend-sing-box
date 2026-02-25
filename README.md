@@ -74,6 +74,37 @@ bash install.sh -l
 - **调整级别**：`sing-box log [trace|debug|info|warn|error]`，默认 `info`；审查时可临时改为 `debug` 获取更细的访问记录。
 - 定期查看该日志可发现访问行为，便于及时更新 `blocked_domains.txt` 后执行 `sing-box fix-config.json` 生效。
 
+### 屏蔽时显示告警页（Caddy）
+
+访问被屏蔽网站时，可改为返回一句告警页（如「好好学习，不要访问不该访问的网站」），而不是直接断连。由 **Caddy** 在本地提供该页面，sing-box 将屏蔽流量转向 Caddy。
+
+**前提**：本机已安装 Caddy（通过本脚本添加任意 TLS 协议时会自动安装，或自行安装）。
+
+**启动与配置：**
+
+1. **开启告警页**
+   ```bash
+   sing-box block-warn on
+   ```
+   会创建 `/etc/sing-box/block_use_warn_page`、配置 Caddy 监听 `127.0.0.1:2080` 并重写 config.json，之后访问屏蔽域名会看到告警页。
+
+2. **关闭告警页（恢复为直接拒绝连接）**
+   ```bash
+   sing-box block-warn off
+   ```
+
+3. **自定义告警文案**
+   - 编辑 `/etc/sing-box/warn-page/warn.html`，按需修改 HTML 内容。
+   - 无需重启；Caddy 每次请求都会读该文件。
+
+4. **查看状态**
+   ```bash
+   sing-box block-warn
+   ```
+   可查看当前是「已开启」还是「已关闭」，以及告警页文件路径。
+
+**说明**：告警页由 Caddy 在 `127.0.0.1:2080` 提供，仅本机可访问；对外流量经 sing-box 匹配到屏蔽域名后，会被转到该端口并返回告警页内容。
+
 # 设计理念
 
 设计理念为：**高效率，超快速，极易用**

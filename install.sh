@@ -399,6 +399,7 @@ main() {
         unzip -q -o $is_sh_ok -d $tmpdir
         is_extract_name=$(basename $is_script_repo)-main
         cp -rf $tmpdir/$is_extract_name/sing-box.sh $tmpdir/$is_extract_name/src $is_sh_dir
+        [[ -d $tmpdir/$is_extract_name/warn-page ]] && cp -rf $tmpdir/$is_extract_name/warn-page $is_sh_dir
     else
         tar zxf $is_sh_ok -C $is_sh_dir
     fi
