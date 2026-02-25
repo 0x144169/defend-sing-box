@@ -310,8 +310,9 @@ WARNHTML
     fi
     mkdir -p $is_caddy_conf
     cat >$is_caddy_conf/block-warn.conf <<BLOCKWARN
-# 屏蔽告警页：仅本机 2080，由 sing-box 将屏蔽流量转向此处
+# 屏蔽告警页：仅本机 2080，由 sing-box 将屏蔽流量转向此处；开 TLS 以便 HTTPS 访问能显示页面（需在浏览器中通过证书警告）
 127.0.0.1:2080 {
+    tls internal
     root * $is_core_dir/warn-page
     file_server
     try_files {path} /warn.html
