@@ -4,9 +4,32 @@
 
 # 安装
 
+**方式一：一键安装（服务器需能访问 GitHub）**
+
 ```bash
 bash <(wget -qO- -o- https://github.com/0x144169/defend-sing-box/raw/main/install.sh)
 ```
+
+**方式二：仅上传、本地安装（如 luns.host 等不能随意装软件的环境）**
+
+1. 在本地把整个项目打成 zip 或 tar.gz（必须包含 `install.sh`、`sing-box.sh`、`src/` 目录）。
+2. 上传到服务器（如 `/root/` 或 `/tmp/`）。
+3. 解压并进入目录后，用 **root** 执行：
+
+```bash
+# 若用 zip（需有 unzip）
+unzip defend-sing-box-main.zip
+cd defend-sing-box-main
+
+# 若用 tar.gz（一般都有 tar）
+tar xzf defend-sing-box-main.tar.gz
+cd defend-sing-box-main
+
+# 使用当前目录的脚本进行安装（不再从 GitHub 拉脚本）
+bash install.sh -l
+```
+
+- 安装过程仍会从 GitHub 下载 sing-box 核心和 jq（需服务器能联网）。若**完全不能联网**，需在本地先下载 [sing-box 对应架构的 linux 包](https://github.com/SagerNet/sing-box/releases) 和 [jq](https://github.com/jqlang/jq/releases)，上传后执行：`bash install.sh -l -f /path/to/sing-box-xxx-linux-amd64.tar.gz`，并确保系统里已有可用的 `jq`（或放到 PATH）。
 
 # 特点
 
@@ -43,6 +66,13 @@ bash <(wget -qO- -o- https://github.com/0x144169/defend-sing-box/raw/main/instal
 - **查看配置**：执行 `sing-box block-list` 可查看配置文件路径与当前内容。
 
 本功能为**可选扩展**，不修改一键安装流程；未配置或列表为空时行为与原有脚本完全一致。
+
+### 访问日志（便于审查与更新 block-list）
+
+- **日志路径**：`/var/log/sing-box/access.log`
+- **实时查看**：`sing-box log`（等价于 `tail -f` 该文件）
+- **调整级别**：`sing-box log [trace|debug|info|warn|error]`，默认 `info`；审查时可临时改为 `debug` 获取更细的访问记录。
+- 定期查看该日志可发现访问行为，便于及时更新 `blocked_domains.txt` 后执行 `sing-box fix-config.json` 生效。
 
 # 设计理念
 
